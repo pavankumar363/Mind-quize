@@ -19,11 +19,8 @@ window.manageQuiz=async id=>{
  const action=prompt('Enter action: edit, publish, draft, delete','edit'); if(!action)return;
  if(action==='delete'){if(!confirm('Delete this quiz permanently?'))return;await fetch(api+'/api/faculty/quizzes/'+id,{method:'DELETE',headers:{Authorization:'Bearer '+token()}});}
  else if(action==='publish'||action==='draft'){await fetch(api+'/api/faculty/quizzes/'+id+'/status',{method:'PATCH',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token()},body:JSON.stringify({status:action})});}
- else if(action==='edit'){
-  const title=prompt('Quiz title',q.title); if(title===null)return;
-  const description=prompt('Description',q.description||''); if(description===null)return;
-  await fetch(api+'/api/faculty/quizzes/'+id,{method:'PUT',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token()},body:JSON.stringify({title,description,category:q.category,time:q.time,questions:q.questions,status:q.status})});
- }
+ else if(action==='edit'){ window.location.href='create-quiz.html?edit='+encodeURIComponent(id); return; }
+
  await renderFaculty();
 };
 renderFaculty();
