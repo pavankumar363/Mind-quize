@@ -15,7 +15,7 @@ app.use(express.json({ limit: "1mb" }));
 app.use((req,res,next)=>{
   res.setHeader("Access-Control-Allow-Origin", process.env.CLIENT_ORIGIN || "*");
   res.setHeader("Access-Control-Allow-Headers","Content-Type, Authorization");
-  res.setHeader("Access-Control-Allow-Methods","GET,POST,OPTIONS");
+  res.setHeader("Access-Control-Allow-Methods","GET,POST,PUT,PATCH,DELETE,OPTIONS");
   if(req.method==="OPTIONS") return res.sendStatus(204);
   next();
 });
@@ -33,9 +33,7 @@ function ensureData(){
     fs.writeFileSync(USERS_FILE,JSON.stringify(users,null,2));
   }
 }
-function seedUser(username,email,role,password){
-  return {id:crypto.randomUUID(),username,email,role,passwordHash:hash(password),createdAt:new Date().toISOString()};
-}
+function seedUser(username,email,role,password,name=""){ return {id:crypto.randomUUID(),username,email,role,name:String(name||"").trim(),passwordHash:hash(password),createdAt:new Date().toISOString()}; }
 function hash(value){
   return crypto.createHash("sha256").update(value).digest("hex");
 }
@@ -44,12 +42,12 @@ function quizzes(){ ensureData(); return JSON.parse(fs.readFileSync(QUIZZES_FILE
 function saveQuizzes(items){ fs.writeFileSync(QUIZZES_FILE,JSON.stringify(items,null,2)); }
 function attempts(){ ensureData(); return JSON.parse(fs.readFileSync(ATTEMPTS_FILE,"utf8")); }
 function saveAttempts(items){ fs.writeFileSync(ATTEMPTS_FILE,JSON.stringify(items,null,2)); }
-function safeUser(u){ return {id:u.id,username:u.username,email:u.email,role:u.role}; }
+function safeUser(u){ return {id:u.id,username:u.username,email:u.email,role:u.role,name:u.name||""}; }
 
 app.get("/api/health",(req,res)=>res.json({ok:true,service:"Mind Quiz API"}));
 
 app.post("/api/register",(req,res)=>{
-  const {username,password,email}=req.body||{};
+  const {username,password,email,fullName}=req.body||{};
   const cleanUsername=String(username||"").trim();
   const cleanEmail=String(email||"").trim();
   if(!cleanUsername || !password || !cleanEmail) return res.status(400).json({message:"Name, email and password are required."});
@@ -58,7 +56,7 @@ app.post("/api/register",(req,res)=>{
   const all=users();
   if(all.some(u=>u.username.toLowerCase()===cleanUsername.toLowerCase())) return res.status(409).json({message:"Username already exists."});
   if(all.some(u=>u.email.toLowerCase()===cleanEmail.toLowerCase())) return res.status(409).json({message:"Email already registered."});
-  const user=seedUser(cleanUsername,cleanEmail,"Student",String(password));
+  const user=seedUser(cleanUsername,cleanEmail,"Student",String(password),fullName);
   all.push(user);
   fs.writeFileSync(USERS_FILE,JSON.stringify(all,null,2));
   const token=crypto.randomBytes(32).toString("hex");
