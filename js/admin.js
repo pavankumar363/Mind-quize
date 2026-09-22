@@ -27,3 +27,19 @@ document.addEventListener('click',async e=>{const user=e.target.closest('[data-d
 document.querySelectorAll('.admin-tab').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.admin-tab').forEach(x=>x.classList.remove('active'));b.classList.add('active');render(b.dataset.tab);}));
 document.getElementById('refreshAdmin')?.addEventListener('click',()=>{const active=document.querySelector('.admin-tab.active')?.dataset.tab||'overview';load(active)});
 load();
+async function loadAnalytics(){
+ const el=document.getElementById('adminAnalytics');if(!el)return;
+ try{
+  const r=await fetch(api+'/api/admin/reports',{headers:{Authorization:'Bearer '+token()}});const d=await r.json();if(!r.ok)throw new Error(d.message);
+  const max=Math.max(1,...d.categoryStats.map(x=>x.attempts));
+  el.innerHTML='<div class="analytics-cards">'+[['Users',d.metrics.users],['Quizzes',d.metrics.quizzes],['Attempts',d.metrics.attempts],['Average',d.metrics.average+'%']].map(x=>'<div><span>'+x[0]+'</span><b>'+x[1]+'</b></div>').join('')+'</div><div class="analytics-grid"><div class="analytics-panel"><h3>Attempts by category</h3>'+ (d.categoryStats.length?d.categoryStats.map(x=>'<div class="bar-row"><span>'+esc(x.category)+'</span><i><b style="width:'+Math.round(x.attempts/max*100)+'%"></b></i><strong>'+x.attempts+'</strong></div>').join(''):'<p>No attempts yet.</p>')+'</div><div class="analytics-panel"><h3>Recent activity</h3>'+ (d.recent.length?d.recent.map(x=>'<div class="activity-row"><div><b>'+esc(x.quiz)+'</b><small>'+esc(x.student)+'</small></div><strong>'+x.score+'%</strong></div>').join(''):'<p>No recent activity.</p>')+'</div></div>';
+ }catch(e){el.innerHTML='<p>'+esc(e.message)+'</p>'}
+}
+function exportAttempts(){
+ if(!state.attempts.length)return alert('No attempts to export.');
+ const rows=[['Student','Quiz','Score','Total','Percentage','Submitted'],...state.attempts.map(a=>[a.studentUsername,a.quizTitle,a.score,a.total,a.percentage,new Date(a.submittedAt).toISOString()])];
+ const csv=rows.map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\n');
+ const blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='mind-quiz-attempts.csv';a.click();URL.revokeObjectURL(url);
+}
+document.getElementById('exportAttempts')?.addEventListener('click',exportAttempts);
+loadAnalytics();
