@@ -1,1 +1,72 @@
-const questions=[{q:"Which keyword is used to define a function in Python?",o:["func","define","def","function"],a:2},{q:"Which data type stores True or False?",o:["String","Boolean","List","Tuple"],a:1},{q:"What is the output type of input() in Python?",o:["Integer","String","Boolean","Float"],a:1},{q:"Which symbol is used for comments in Python?",o:["//","#","/*","--"],a:1},{q:"Which collection is ordered and changeable?",o:["Tuple","Set","List","FrozenSet"],a:2},{q:"What does len() return?",o:["The last item","The number of items","The data type","The memory size"],a:1},{q:"Which operator is used for exponentiation?",o:["^","**","//","%%"],a:1},{q:"Which statement is used to handle exceptions?",o:["try/except","if/error","catch/error","handle"],a:0},{q:"Which value represents no value in Python?",o:["0","False","None","Empty"],a:2},{q:"Which function displays output?",o:["display()","show()","write()","print()"],a:3}];let current=0,answers=Array(questions.length).fill(null),seconds=15*60;const qText=document.getElementById('questionText'),options=document.getElementById('options'),num=document.getElementById('questionNumber'),count=document.getElementById('answeredCount'),bar=document.getElementById('progressBar'),numbers=document.getElementById('numbers'),prev=document.getElementById('prevBtn'),next=document.getElementById('nextBtn'),timer=document.getElementById('timer');function renderNumbers(){numbers.innerHTML=questions.map((_,i)=>'<button class="num '+(i===current?'current ':'')+(answers[i]!==null?'answered':'')+'" data-i="'+i+'">'+(i+1)+'</button>').join('');numbers.querySelectorAll('.num').forEach(b=>b.onclick=()=>{current=+b.dataset.i;render()})}function render(){const x=questions[current];num.textContent='QUESTION '+(current+1)+' OF '+questions.length;count.textContent=answers.filter(v=>v!==null).length+' answered';bar.style.width=((current+1)/questions.length*100)+'%';qText.textContent=x.q;options.innerHTML=x.o.map((v,i)=>'<button class="option '+(answers[current]===i?'selected':'')+'" data-i="'+i+'"><span class="letter">'+String.fromCharCode(65+i)+'</span>'+v+'</button>').join('');options.querySelectorAll('.option').forEach(b=>b.onclick=()=>{answers[current]=+b.dataset.i;render()});prev.disabled=current===0;prev.style.opacity=prev.disabled?.45:1;next.textContent=current===questions.length-1?'Finish Quiz →':'Next Question →';renderNumbers()}prev.onclick=()=>{if(current>0){current--;render()}};next.onclick=()=>{if(current<questions.length-1){current++;render()}else submitQuiz()};document.getElementById('submitBtn').onclick=submitQuiz;function submitQuiz(){const score=answers.reduce((s,v,i)=>s+(v===questions[i].a?1:0),0);document.getElementById('score').textContent=score+' / '+questions.length;document.getElementById('scoreText').textContent=score>=8?'Excellent work! Keep challenging yourself.':score>=5?'Good effort! Practice a little more and improve your score.':'Keep practicing — every attempt helps you learn.';document.getElementById('resultModal').classList.add('show');clearInterval(clock)}document.getElementById('retryBtn').onclick=()=>{answers.fill(null);current=0;seconds=15*60;document.getElementById('resultModal').classList.remove('show');render();startClock()};function startClock(){clearInterval(clock);clock=setInterval(()=>{seconds--;if(seconds<0){submitQuiz();return}const m=String(Math.floor(seconds/60)).padStart(2,'0'),s=String(seconds%60).padStart(2,'0');timer.textContent=m+':'+s;if(seconds<=60)timer.style.color='#ff9b8f'},1000)}let clock;render();startClock();
+let questions=[];
+let current=0;
+let answers=[];
+let startedAt=Date.now();
+let quizId=null;
+let timer=null;
+const params=new URLSearchParams(location.search);
+
+function getQuiz(){
+  try{return JSON.parse(localStorage.getItem('mindQuizPublished')||'null')}catch{return null}
+}
+async function loadQuiz(){
+  if(window.MindQuizAuth && !MindQuizAuth.requireRole('student')) return;
+  const local=getQuiz();
+  const id=params.get('id');
+  try{
+    const r=await fetch(MindQuizAuth.API_BASE+'/api/quizzes',{headers:{Authorization:'Bearer '+localStorage.getItem('mindQuizToken')}});
+    const data=await r.json();
+    const remote=(data.quizzes||[]).find(q=>q.id===id) || (data.quizzes||[]).find(q=>!id) || local;
+    if(remote) start(remote); else renderFallback();
+  }catch(e){ if(local) start(local); else renderFallback(); }
+}
+function start(quiz){
+  quizId=quiz.id||null;
+  questions=quiz.questions||[];
+  answers=new Array(questions.length).fill(null);
+  document.getElementById('quizTitle').textContent=quiz.title||'Mind Quiz';
+  const total=questions.length;
+  document.getElementById('questionCount').textContent=total;
+  document.getElementById('totalQuestions').textContent=total;
+  document.getElementById('timer').textContent=(quiz.time||15)+':00';
+  render();
+  startTimer((quiz.time||15)*60);
+}
+function render(){
+  if(!questions.length)return;
+  const q=questions[current];
+  document.getElementById('questionNumber').textContent=current+1;
+  document.getElementById('questionText').textContent=q.text;
+  const wrap=document.getElementById('options');
+  wrap.innerHTML=q.options.map((o,i)=>'<button class="answer-option '+(answers[current]===i?'selected':'')+'" data-i="'+i+'"><span>'+String.fromCharCode(65+i)+'</span>'+o+'</button>').join('');
+  wrap.querySelectorAll('button').forEach(b=>b.onclick=()=>{answers[current]=+b.dataset.i;render()});
+  document.getElementById('progress').style.width=((current+1)/questions.length*100)+'%';
+  document.getElementById('prevBtn').disabled=current===0;
+  document.getElementById('nextBtn').textContent=current===questions.length-1?'Submit Quiz':'Next';
+}
+function startTimer(seconds){
+  clearInterval(timer); let left=seconds;
+  const tick=()=>{const m=Math.floor(left/60),s=String(left%60).padStart(2,'0');document.getElementById('timer').textContent=m+':'+s;if(left<=0){clearInterval(timer);submitQuiz(true)}left--};
+  tick();timer=setInterval(tick,1000);
+}
+async function submitQuiz(auto=false){
+  clearInterval(timer);
+  const quiz=questions;
+  let score=0; answers.forEach((a,i)=>{if(a!==null && a===quiz[i].answer)score++});
+  const timeTaken=Math.round((Date.now()-startedAt)/1000);
+  const payload={quizId,answers,score,total:quiz.length,timeTaken};
+  try{
+    const r=await fetch(MindQuizAuth.API_BASE+'/api/attempts',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+localStorage.getItem('mindQuizToken')},body:JSON.stringify(payload)});
+    const data=await r.json(); if(!r.ok)throw new Error(data.message||'Could not save result.');
+    localStorage.setItem('mindQuizLastAttempt',JSON.stringify(data.attempt));
+  }catch(e){localStorage.setItem('mindQuizLastAttempt',JSON.stringify({quizTitle:document.getElementById('quizTitle').textContent,score,total:quiz.length,percentage:Math.round(score/quiz.length*100),timeTaken}));}
+  document.getElementById('resultModal').classList.add('show');
+  document.getElementById('scoreValue').textContent=score+'/'+quiz.length;
+  document.getElementById('scorePercent').textContent=Math.round(score/quiz.length*100)+'%';
+}
+document.getElementById('prevBtn').onclick=()=>{if(current>0){current--;render()}};
+document.getElementById('nextBtn').onclick=()=>{if(current<questions.length-1){current++;render()}else submitQuiz(false)};
+document.getElementById('submitQuiz').onclick=()=>submitQuiz(false);
+document.getElementById('retryQuiz').onclick=()=>location.reload();
+document.getElementById('backDashboard').onclick=()=>location.href='student.html';
+loadQuiz();
