@@ -1,3 +1,29 @@
-const create=document.getElementById('createQuiz');if(create)create.addEventListener('click',()=>{const title=document.getElementById('quizTitle').value.trim();if(!title){document.getElementById('quizTitle').focus();return}create.textContent='Quiz Created ✓';create.style.background='#9af2a4';setTimeout(()=>{create.textContent='Create Quiz →'},1800)});
-
-async function loadFacultyAttempts(){const el=document.getElementById('facultyAttempts');if(!el||!window.MindQuizAuth)return;try{const r=await fetch(MindQuizAuth.API_BASE+'/api/faculty/attempts',{headers:{Authorization:'Bearer '+localStorage.getItem('mindQuizToken')}});const d=await r.json();if(!r.ok)throw new Error(d.message||'Unable to load attempts');const rows=d.attempts||[];el.innerHTML=rows.length?'<div class="attempt-table"><div class="attempt-head"><span>Student</span><span>Quiz</span><span>Score</span><span>Submitted</span></div>'+rows.map(a=>'<div class="attempt-row"><span>'+a.studentUsername+'</span><span>'+a.quizTitle+'</span><span><b>'+a.score+'/'+a.total+'</b> · '+a.percentage+'%</span><span>'+new Date(a.submittedAt).toLocaleString()+'</span></div>').join('')+'</div>':'<p>No student attempts yet.</p>'}catch(e){el.innerHTML='<p>'+e.message+'</p>'}};loadFacultyAttempts();
+if(!MindQuizAuth.requireRole('faculty')) throw new Error('Faculty access required.');
+const api=MindQuizAuth.API_BASE, token=()=>localStorage.getItem('mindQuizToken');
+async function facultyData(){
+ const r=await fetch(api+'/api/faculty/overview',{headers:{Authorization:'Bearer '+token()}});
+ const d=await r.json(); if(!r.ok)throw new Error(d.message||'Unable to load faculty data'); return d;
+}
+function esc(v){return String(v??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+async function renderFaculty(){
+ try{
+  const d=await facultyData();
+  const m=document.querySelectorAll('.metric strong'); if(m.length){m[0].textContent=d.stats.quizzes;m[1].textContent=d.stats.active;m[2].textContent=d.stats.attempts;m[3].textContent=d.stats.average+'%';}
+  const table=document.querySelector('.faculty-table');
+  if(table)table.innerHTML='<div class="f-head"><span>QUIZ</span><span>QUESTIONS</span><span>ATTEMPTS</span><span>STATUS</span><span>ACTION</span></div>'+d.quizzes.map(q=>'<div class="f-row"><div><b>'+esc(q.title)+'</b><small>'+esc(q.category)+'</small></div><span>'+q.questions.length+'</span><span>'+q.attempts+'</span><i class="'+(q.status==='published'?'published':'draft')+'">'+q.status+'</i><button onclick="manageQuiz(\''+q.id+'\')">Manage</button></div>').join('');
+  const el=document.getElementById('facultyAttempts'); if(el)el.innerHTML=d.attempts.length?'<div class="attempt-table"><div class="attempt-head"><span>Student</span><span>Quiz</span><span>Score</span><span>Submitted</span></div>'+d.attempts.map(a=>'<div class="attempt-row"><span>'+esc(a.studentUsername)+'</span><span>'+esc(a.quizTitle)+'</span><span><b>'+a.score+'/'+a.total+'</b> · '+a.percentage+'%</span><span>'+new Date(a.submittedAt).toLocaleString()+'</span></div>').join('')+'</div>':'<p>No student attempts yet.</p>';
+ }catch(e){console.error(e);}
+}
+window.manageQuiz=async id=>{
+ const d=await facultyData(), q=d.quizzes.find(x=>x.id===id); if(!q)return;
+ const action=prompt('Enter action: edit, publish, draft, delete','edit'); if(!action)return;
+ if(action==='delete'){if(!confirm('Delete this quiz permanently?'))return;await fetch(api+'/api/faculty/quizzes/'+id,{method:'DELETE',headers:{Authorization:'Bearer '+token()}});}
+ else if(action==='publish'||action==='draft'){await fetch(api+'/api/faculty/quizzes/'+id+'/status',{method:'PATCH',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token()},body:JSON.stringify({status:action})});}
+ else if(action==='edit'){
+  const title=prompt('Quiz title',q.title); if(title===null)return;
+  const description=prompt('Description',q.description||''); if(description===null)return;
+  await fetch(api+'/api/faculty/quizzes/'+id,{method:'PUT',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token()},body:JSON.stringify({title,description,category:q.category,time:q.time,questions:q.questions,status:q.status})});
+ }
+ await renderFaculty();
+};
+renderFaculty();
