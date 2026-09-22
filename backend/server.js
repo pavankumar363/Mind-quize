@@ -119,7 +119,7 @@ app.post("/api/quizzes",auth,(req,res)=>{
   res.status(201).json({quiz:item});
 });
 app.post("/api/attempts",(req,res)=>{
-  const token=(req.headers.authorization||"").replace(/^Bearer\\s+/i,"");
+  const token=(req.headers.authorization||"").replace(/^Bearer\s+/i,"");
   const session=sessions.get(token);
   if(!session || session.expiresAt<Date.now()) return res.status(401).json({message:"Please log in again."});
   const user=users().find(u=>u.id===session.userId);
