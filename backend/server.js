@@ -8,6 +8,7 @@ const PORT = process.env.PORT || 4000;
 const DATA_DIR = path.join(__dirname, "data");
 const USERS_FILE = path.join(DATA_DIR, "users.json");
 const QUIZZES_FILE = path.join(DATA_DIR, "quizzes.json");
+const ATTEMPTS_FILE = path.join(DATA_DIR, "attempts.json");
 const sessions = new Map();
 
 app.use(express.json({ limit: "1mb" }));
@@ -22,6 +23,7 @@ app.use((req,res,next)=>{
 function ensureData(){
   fs.mkdirSync(DATA_DIR,{recursive:true});
   if(!fs.existsSync(QUIZZES_FILE)) fs.writeFileSync(QUIZZES_FILE,"[]");
+  if(!fs.existsSync(ATTEMPTS_FILE)) fs.writeFileSync(ATTEMPTS_FILE,"[]");
   if(!fs.existsSync(USERS_FILE)){
     const users=[
       seedUser("admin","admin@mindquiz.local","Admin","admin123"),
@@ -40,6 +42,8 @@ function hash(value){
 function users(){ ensureData(); return JSON.parse(fs.readFileSync(USERS_FILE,"utf8")); }
 function quizzes(){ ensureData(); return JSON.parse(fs.readFileSync(QUIZZES_FILE,"utf8")); }
 function saveQuizzes(items){ fs.writeFileSync(QUIZZES_FILE,JSON.stringify(items,null,2)); }
+function attempts(){ ensureData(); return JSON.parse(fs.readFileSync(ATTEMPTS_FILE,"utf8")); }
+function saveAttempts(items){ fs.writeFileSync(ATTEMPTS_FILE,JSON.stringify(items,null,2)); }
 function safeUser(u){ return {id:u.id,username:u.username,email:u.email,role:u.role}; }
 
 app.get("/api/health",(req,res)=>res.json({ok:true,service:"Mind Quiz API"}));
@@ -116,6 +120,33 @@ app.post("/api/quizzes",auth,(req,res)=>{
   saveQuizzes(all);
   res.status(201).json({quiz:item});
 });
+app.post("/api/attempts",(req,res)=>{
+  const token=(req.headers.authorization||"").replace(/^Bearer\\s+/i,"");
+  const session=sessions.get(token);
+  if(!session || session.expiresAt<Date.now()) return res.status(401).json({message:"Please log in again."});
+  const user=users().find(u=>u.id===session.userId);
+  if(!user) return res.status(401).json({message:"User account not found."});
+  if(user.role.toLowerCase()!=="student") return res.status(403).json({message:"Only students can submit quiz attempts."});
+  const {quizId,answers,score,total,timeTaken}=req.body||{};
+  const quiz=quizzes().find(q=>q.id===quizId);
+  if(!quiz) return res.status(404).json({message:"Quiz not found."});
+  const safeScore=Math.max(0,Math.min(Number(score)||0,quiz.questions.length));
+  const attempt={id:crypto.randomUUID(),quizId,userId:user.id,studentUsername:user.username,quizTitle:quiz.title,score:safeScore,total:quiz.questions.length,percentage:Math.round((safeScore/quiz.questions.length)*100),answers:Array.isArray(answers)?answers:[],timeTaken:Number(timeTaken)||0,submittedAt:new Date().toISOString()};
+  const all=attempts(); all.unshift(attempt); saveAttempts(all);
+  res.status(201).json({attempt});
+});
+
+app.get("/api/my-attempts",auth,(req,res)=>{
+  if(req.user.role.toLowerCase()!=="student") return res.status(403).json({message:"Students only."});
+  res.json({attempts:attempts().filter(a=>a.userId===req.user.id)});
+});
+
+app.get("/api/faculty/attempts",auth,(req,res)=>{
+  if(!["faculty","admin"].includes(req.user.role.toLowerCase())) return res.status(403).json({message:"Faculty or Admin only."});
+  const qs=new Set(quizzes().filter(q=>req.user.role.toLowerCase()==="admin" || q.createdBy===req.user.id).map(q=>q.id));
+  res.json({attempts:attempts().filter(a=>qs.has(a.quizId))});
+});
+
 app.post("/api/logout",auth,(req,res)=>{
   const token=(req.headers.authorization||"").replace(/^Bearer\s+/i,"");
   sessions.delete(token);
