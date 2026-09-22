@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Login | Mind Quiz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css"><link rel="stylesheet" href="css/login.css">
+</head>
+<body>
+<header class="site-header"><div class="container nav">
+<a class="brand" href="index.html"><span class="brand-mark">M</span><span>Mind<span>Quiz</span></span></a>
+<a class="back-link" href="index.html">← Back to home</a>
+</div></header>
+<main class="login-page">
+<div class="login-shell">
+<div class="login-intro">
+<div class="eyebrow"><span></span> WELCOME TO MIND QUIZ</div>
+<h1>Choose your<br><em>learning space.</em></h1>
+<p>Sign in to access the Mind Quiz experience designed for your role.</p>
+<div class="login-benefits"><div><b>01</b><span>Personalized access</span></div><div><b>02</b><span>Simple & secure interface</span></div><div><b>03</b><span>Learn, practice & improve</span></div></div>
+</div>
+<div class="role-card">
+<div class="role-head"><span>SELECT ROLE</span><small>Step 1 of 1</small></div>
+<div class="roles">
+<button class="role active" data-role="student"><span class="role-icon">S</span><span><b>Student</b><small>Take quizzes & view results</small></span><i>→</i></button>
+<button class="role" data-role="faculty"><span class="role-icon">F</span><span><b>Faculty</b><small>Create & manage quizzes</small></span><i>→</i></button>
+<button class="role" data-role="admin"><span class="role-icon">A</span><span><b>Admin</b><small>Manage the platform</small></span><i>→</i></button>
+</div>
+<form id="loginForm">
+<label>Username / ID<input id="username" type="text" placeholder="Enter your username or ID" required></label>
+<label>Password<input id="password" type="password" placeholder="Enter your password" required></label>
+<div class="form-row"><label class="check"><input type="checkbox"> Remember me</label><a href="#">Forgot password?</a></div>
+<button class="login-btn" type="submit">Continue as <span id="roleLabel">Student</span> <strong>→</strong></button>
+<p class="demo-note" id="demoNote">Demo interface — authentication will be connected in the next phase.</p>
+</form>
+</div>
+</div>
+</main>
+<script src="js/login.js"></script>
+</body></html>
