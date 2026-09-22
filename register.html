@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Create Student Account | Mind Quiz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css"><link rel="stylesheet" href="css/login.css">
+<style>
+.register-page{min-height:calc(100vh - 76px);display:grid;place-items:center;padding:40px 20px}
+.register-card{width:min(520px,100%);background:#151b19;border:1px solid rgba(123,234,139,.16);border-radius:24px;padding:34px;box-shadow:0 24px 70px rgba(0,0,0,.28)}
+.register-card h1{margin:0 0 8px;font-size:32px}.register-card>p{color:#aeb8b3;margin:0 0 26px}
+.register-card label{display:block;margin:16px 0 0;font-weight:600}.register-card input{width:100%;margin-top:8px;padding:14px 15px;border-radius:12px;border:1px solid #303936;background:#0e1312;color:#fff;box-sizing:border-box}
+.register-btn{width:100%;margin-top:22px;padding:14px;border:0;border-radius:12px;background:#7bea8b;color:#0c130e;font-weight:800;cursor:pointer}
+.register-msg{min-height:22px;margin-top:14px;text-align:center;color:#aeb8b3}
+.register-footer{text-align:center;margin-top:20px;color:#aeb8b3}.register-footer a{color:#7bea8b}
+</style>
+</head>
+<body>
+<header class="site-header"><div class="container nav">
+<a class="brand" href="index.html"><span class="brand-mark">M</span><span>Mind<span>Quiz</span></span></a>
+<a class="back-link" href="login.html">← Back to login</a>
+</div></header>
+<main class="register-page">
+<section class="register-card">
+<div class="eyebrow"><span></span> STUDENT REGISTRATION</div>
+<h1>Create your account</h1>
+<p>Students can register themselves and start using Mind Quiz immediately.</p>
+<form id="registerForm">
+<label>Full Name<input id="fullName" required placeholder="Enter your full name"></label>
+<label>Username / Student ID<input id="username" required minlength="3" placeholder="Choose a username"></label>
+<label>Email<input id="email" type="email" required placeholder="Enter your email"></label>
+<label>Password<input id="password" type="password" minlength="6" required placeholder="At least 6 characters"></label>
+<label>Confirm Password<input id="confirmPassword" type="password" minlength="6" required placeholder="Re-enter your password"></label>
+<button class="register-btn" type="submit">Create Student Account →</button>
+<p class="register-msg" id="registerMsg"></p>
+</form>
+<div class="register-footer">Already have an account? <a href="login.html">Sign in</a></div>
+</section>
+</main>
+<script src="js/auth.js"></script>
+<script src="js/register.js"></script>
+</body></html>
