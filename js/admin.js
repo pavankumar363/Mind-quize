@@ -15,7 +15,9 @@ async function adminAction(url,opts={}){
  const d=await r.json();if(!r.ok)throw new Error(d.message||'Action failed');return d;
 }
 async function load(activeTab='overview'){
- try{const r=await fetch(api+'/api/admin/overview',{headers:{Authorization:'Bearer '+token()}});const d=await r.json();if(!r.ok)throw new Error(d.message||'Unable to load admin data');state=d;render(activeTab);}
+ try{const r=await fetch(api+'/api/admin/overview',{headers:{Authorization:'Bearer '+token()}});const d=await r.json();if(!r.ok)throw new Error(d.message||'Unable to load admin data');state=d;
+ const m=document.querySelectorAll('.metric strong');if(m.length){m[0].textContent=d.stats.users;m[1].textContent=d.stats.faculty;m[2].textContent=d.stats.students;m[3].textContent=d.stats.quizzes;}
+ render(activeTab);}
  catch(e){content.innerHTML='<div class="admin-panel"><p>'+esc(e.message)+'</p></div>';}
 }
 document.addEventListener('change',async e=>{const el=e.target;if(!el.matches('.role-select'))return;try{await adminAction('/api/admin/users/'+el.dataset.id+'/role',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({role:el.value})});await load('users')}catch(err){alert(err.message);await load('users')}});
