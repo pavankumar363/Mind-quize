@@ -23,6 +23,7 @@ async function loadQuiz(){
 function start(quiz){
   quizId=quiz.id||null;
   questions=quiz.questions||[];
+  startedAt=Date.now();
   answers=new Array(questions.length).fill(null);
   document.getElementById('quizTitle').textContent=quiz.title||'Mind Quiz';
   const total=questions.length;
@@ -43,7 +44,7 @@ function render(){
   document.getElementById('progress').style.width=((current+1)/questions.length*100)+'%';
   document.getElementById('answeredCount').textContent=answers.filter(a=>a!==null).length+' answered';
   const numbers=document.getElementById('numbers');
-  numbers.innerHTML=questions.map((_,i)=>'<button class="q-number '+(i===current?'current ':'')+(answers[i]!==null?'answered':'')+'" data-i="'+i+'">'+(i+1)+'</button>').join('');
+  numbers.innerHTML=questions.map((_,i)=>'<button class="num '+(i===current?'current ':'')+(answers[i]!==null?'answered':'')+'" data-i="'+i+'">'+(i+1)+'</button>').join('');
   numbers.querySelectorAll('button').forEach(b=>b.onclick=()=>{current=Number(b.dataset.i);render()});
   document.getElementById('prevBtn').disabled=current===0;
   document.getElementById('nextBtn').textContent=current===questions.length-1?'Submit Quiz':'Next Question →';
