@@ -257,6 +257,16 @@ app.delete("/api/admin/quizzes/:id",auth,(req,res)=>{
   res.json({ok:true});
 });
 
+app.get("/api/admin/reports",auth,(req,res)=>{
+ if(req.user.role.toLowerCase()!=="admin") return res.status(403).json({message:"Admin only."});
+ const us=users(),qs=quizzes(),as=attempts();
+ const published=qs.filter(q=>q.status==="published");
+ const avg=as.length?Math.round(as.reduce((n,a)=>n+(Number(a.percentage)||0),0)/as.length):0;
+ const byCategory={}; as.forEach(a=>{const k=a.category||"General";byCategory[k]=(byCategory[k]||0)+1});
+ const categoryStats=Object.entries(byCategory).map(([category,attempts])=>({category,attempts})).sort((a,b)=>b.attempts-a.attempts).slice(0,8);
+ const recent=as.slice(0,10).map(a=>({student:a.studentUsername,quiz:a.quizTitle,score:a.percentage,submittedAt:a.submittedAt}));
+ res.json({metrics:{users:us.length,quizzes:qs.length,published:published.length,attempts:as.length,average:avg},categoryStats,recent});
+});
 app.get("/api/admin/overview",auth,(req,res)=>{
   if(req.user.role.toLowerCase()!=="admin") return res.status(403).json({message:"Admin only."});
   const allUsers=users(), allQuizzes=quizzes(), allAttempts=attempts();
