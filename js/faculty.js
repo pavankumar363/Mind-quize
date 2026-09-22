@@ -24,3 +24,4 @@ window.manageQuiz=async id=>{
  await renderFaculty();
 };
 renderFaculty();
+(function(){const u=MindQuizAuth?.getUser?.();if(!u)return;const name=u.name||u.username||'Faculty';const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v};set('facultyProfileName',name);set('facultyProfileUsername',u.username||'');set('facultyProfileEmail',u.email||'');set('facultyProfileAvatar',name.charAt(0).toUpperCase());document.getElementById('facultyAccountLogout')?.addEventListener('click',()=>MindQuizAuth.logout())})();
