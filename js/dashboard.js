@@ -46,3 +46,19 @@ async function loadAvailableQuizzes(){
 }
 loadStudentData();loadAvailableQuizzes();
 (function(){const u=MindQuizAuth?.getUser?.();if(!u)return;const name=u.name||u.username||'Student';const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v};set('profileName',name);set('profileUsername',u.username||'');set('profileEmail',u.email||'');set('profileAvatar',name.charAt(0).toUpperCase());document.getElementById('studentLogout')?.addEventListener('click',e=>{e.preventDefault();MindQuizAuth.logout()});document.getElementById('studentAccountLogout')?.addEventListener('click',()=>MindQuizAuth.logout())})();
+async function updateProfile(name,email,messageId){
+ const r=await fetch(MindQuizAuth.API_BASE+'/api/profile',{method:'PUT',headers:{'Content-Type':'application/json',Authorization:'Bearer '+localStorage.getItem('mindQuizToken')},body:JSON.stringify({name,email})});
+ const d=await r.json(); const m=document.getElementById(messageId); if(!r.ok)throw new Error(d.message||'Unable to update profile');
+ localStorage.setItem('mindQuizUser',JSON.stringify(d.user)); return d.user;
+}
+async function changePassword(currentPassword,newPassword,messageId){
+ const r=await fetch(MindQuizAuth.API_BASE+'/api/change-password',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+localStorage.getItem('mindQuizToken')},body:JSON.stringify({currentPassword,newPassword})});
+ const d=await r.json(); const m=document.getElementById(messageId); if(!r.ok)throw new Error(d.message||'Unable to change password'); return d;
+}
+(function(){
+ const u=MindQuizAuth?.getUser?.(); if(!u)return;
+ const nameInput=document.getElementById('studentEditName'), emailInput=document.getElementById('studentEditEmail');
+ if(nameInput)nameInput.value=u.name||u.username||''; if(emailInput)emailInput.value=u.email||'';
+ document.getElementById('studentSaveProfile')?.addEventListener('click',async()=>{const m=document.getElementById('studentProfileMessage');try{const x=await updateProfile(nameInput.value,emailInput.value,'studentProfileMessage');m.textContent='Profile saved ✓';m.className='account-message success';setText('profileName',x.name);setText('profileEmail',x.email)}catch(e){m.textContent=e.message;m.className='account-message error'}});
+ document.getElementById('studentChangePassword')?.addEventListener('click',async()=>{const m=document.getElementById('studentPasswordMessage');try{await changePassword(document.getElementById('studentCurrentPassword').value,document.getElementById('studentNewPassword').value,'studentPasswordMessage');m.textContent='Password changed ✓';m.className='account-message success';document.getElementById('studentCurrentPassword').value='';document.getElementById('studentNewPassword').value=''}catch(e){m.textContent=e.message;m.className='account-message error'}});
+})();
