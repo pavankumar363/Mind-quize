@@ -45,3 +45,4 @@ async function loadAvailableQuizzes(){
  }catch(e){el.innerHTML='<p>Unable to load quizzes. Start the Mind Quiz server and refresh.</p>'}
 }
 loadStudentData();loadAvailableQuizzes();
+(function(){const u=MindQuizAuth?.getUser?.();if(!u)return;const name=u.name||u.username||'Student';const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v};set('profileName',name);set('profileUsername',u.username||'');set('profileEmail',u.email||'');set('profileAvatar',name.charAt(0).toUpperCase());document.getElementById('studentLogout')?.addEventListener('click',e=>{e.preventDefault();MindQuizAuth.logout()});document.getElementById('studentAccountLogout')?.addEventListener('click',()=>MindQuizAuth.logout())})();
