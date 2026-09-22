@@ -50,7 +50,7 @@ app.post("/api/register",(req,res)=>{
   const {username,password,email,fullName}=req.body||{};
   const cleanUsername=String(username||"").trim();
   const cleanEmail=String(email||"").trim();
-  if(!cleanUsername || !password || !cleanEmail) return res.status(400).json({message:"Name, email and password are required."});
+  if(!cleanUsername || !password || !cleanEmail) return res.status(400).json({message:"Username, email and password are required."});
   if(cleanUsername.length<3) return res.status(400).json({message:"Username must be at least 3 characters."});
   if(String(password).length<6) return res.status(400).json({message:"Password must be at least 6 characters."});
   const all=users();
