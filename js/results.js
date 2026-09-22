@@ -22,3 +22,5 @@ async function load(){
 }
 filter.addEventListener('change',render);
 load();
+async function loadLeaderboard(){const el=document.getElementById('leaderboardList');if(!el)return;try{const r=await fetch(MindQuizAuth.API_BASE+'/api/leaderboard',{headers:{Authorization:'Bearer '+localStorage.getItem('mindQuizToken')}});const d=await r.json();if(!r.ok)throw new Error(d.message||'Unable to load leaderboard');el.innerHTML=(d.leaderboard||[]).length?(d.leaderboard||[]).map(x=>'<div class="leaderboard-row '+(x.username===MindQuizAuth.getUser()?.username?'me':'')+'"><strong>#'+x.rank+'</strong><div><b>'+String(x.name).replace(/[&<>"]/g,'')+'</b><small>@'+String(x.username).replace(/[&<>"]/g,'')+'</small></div><span>'+x.attempts+' quizzes</span><b>'+x.average+'%</b></div>').join(''):'<p>No ranked results yet.</p>';}catch(e){el.innerHTML='<p>Unable to load leaderboard.</p>';}}
+document.getElementById('refreshLeaderboard')?.addEventListener('click',loadLeaderboard);loadLeaderboard();
