@@ -88,6 +88,32 @@ function auth(req,res,next){
 }
 
 app.get("/api/me",auth,(req,res)=>res.json({user:safeUser(req.user)}));
+app.put("/api/profile",auth,(req,res)=>{
+  const {name,email}=req.body||{};
+  const cleanName=String(name??req.user.name??"").trim();
+  const cleanEmail=String(email??req.user.email??"").trim();
+  if(!cleanName || !cleanEmail) return res.status(400).json({message:"Name and email are required."});
+  if(!/^\\S+@\\S+\\.\\S+$/.test(cleanEmail)) return res.status(400).json({message:"Enter a valid email address."});
+  const all=users(), i=all.findIndex(u=>u.id===req.user.id);
+  if(i<0) return res.status(404).json({message:"User account not found."});
+  if(all.some((u,idx)=>idx!==i && u.email.toLowerCase()===cleanEmail.toLowerCase())) return res.status(409).json({message:"Email already registered."});
+  all[i].name=cleanName; all[i].email=cleanEmail; all[i].updatedAt=new Date().toISOString();
+  fs.writeFileSync(USERS_FILE,JSON.stringify(all,null,2));
+  res.json({user:safeUser(all[i])});
+});
+
+app.post("/api/change-password",auth,(req,res)=>{
+  const {currentPassword,newPassword}=req.body||{};
+  if(!currentPassword || !newPassword) return res.status(400).json({message:"Current and new passwords are required."});
+  if(String(newPassword).length<6) return res.status(400).json({message:"New password must be at least 6 characters."});
+  const all=users(), i=all.findIndex(u=>u.id===req.user.id);
+  if(i<0) return res.status(404).json({message:"User account not found."});
+  if(all[i].passwordHash!==hash(String(currentPassword))) return res.status(401).json({message:"Current password is incorrect."});
+  all[i].passwordHash=hash(String(newPassword)); all[i].updatedAt=new Date().toISOString();
+  fs.writeFileSync(USERS_FILE,JSON.stringify(all,null,2));
+  res.json({ok:true,message:"Password changed successfully."});
+});
+
 
 app.get("/api/quizzes",auth,(req,res)=>{
   res.json({quizzes:quizzes().filter(q=>q.status==="published")});
