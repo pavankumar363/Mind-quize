@@ -4,6 +4,7 @@ const path = require("path");
 const crypto = require("crypto");
 
 const app = express();
+app.disable("x-powered-by");
 const PORT = process.env.PORT || 4000;
 const DATA_DIR = path.join(__dirname, "data");
 const USERS_FILE = path.join(DATA_DIR, "users.json");
@@ -116,7 +117,12 @@ app.post("/api/change-password",auth,(req,res)=>{
 
 
 app.get("/api/quizzes",auth,(req,res)=>{
-  res.json({quizzes:quizzes().filter(q=>q.status==="published")});
+  const query=String(req.query.q||"").trim().toLowerCase();
+  const category=String(req.query.category||"").trim().toLowerCase();
+  let list=quizzes().filter(q=>q.status==="published");
+  if(query) list=list.filter(q=>[q.title,q.description,q.category].some(v=>String(v||"").toLowerCase().includes(query)));
+  if(category && category!=="all") list=list.filter(q=>String(q.category||"").toLowerCase()===category);
+  res.json({quizzes:list});
 });
 
 app.post("/api/quizzes",auth,(req,res)=>{
@@ -155,7 +161,9 @@ app.post("/api/attempts",(req,res)=>{
   const quiz=quizzes().find(q=>q.id===quizId);
   if(!quiz) return res.status(404).json({message:"Quiz not found."});
   const safeScore=Math.max(0,Math.min(Number(score)||0,quiz.questions.length));
-  const attempt={id:crypto.randomUUID(),quizId,userId:user.id,studentUsername:user.username,quizTitle:quiz.title,score:safeScore,total:quiz.questions.length,percentage:Math.round((safeScore/quiz.questions.length)*100),answers:Array.isArray(answers)?answers:[],timeTaken:Number(timeTaken)||0,submittedAt:new Date().toISOString()};
+  const cleanAnswers=Array.isArray(answers)?answers:[];
+const breakdown=quiz.questions.map((q,i)=>({question:q.text,selected:cleanAnswers[i]??null,correct:q.answer,correctText:q.options?.[q.answer]??"",selectedText:cleanAnswers[i]!=null?q.options?.[cleanAnswers[i]]??"":""}));
+const attempt={id:crypto.randomUUID(),quizId,userId:user.id,studentUsername:user.username,quizTitle:quiz.title,category:quiz.category,score:safeScore,total:quiz.questions.length,percentage:Math.round((safeScore/quiz.questions.length)*100),answers:cleanAnswers,breakdown,timeTaken:Number(timeTaken)||0,submittedAt:new Date().toISOString()};
   const all=attempts(); all.unshift(attempt); saveAttempts(all);
   res.status(201).json({attempt});
 });
@@ -177,11 +185,83 @@ app.get("/api/my-attempts",auth,(req,res)=>{
   res.json({attempts:attempts().filter(a=>a.userId===req.user.id)});
 });
 
+
+app.get("/api/student/insights",auth,(req,res)=>{
+  if(req.user.role.toLowerCase()!=="student") return res.status(403).json({message:"Students only."});
+  const mine=attempts().filter(a=>a.userId===req.user.id);
+  const dayKey=d=>new Date(d).toISOString().slice(0,10);
+  const days=[...new Set(mine.map(a=>dayKey(a.submittedAt)))].sort().reverse();
+  let streak=0, cursor=new Date(); cursor.setHours(0,0,0,0);
+  for(const day of days){
+    const k=cursor.toISOString().slice(0,10);
+    if(day!==k) break;
+    streak++; cursor.setDate(cursor.getDate()-1);
+  }
+  const best=mine.length?Math.max(...mine.map(a=>Number(a.percentage)||0)):0;
+  const avg=mine.length?Math.round(mine.reduce((n,a)=>n+(Number(a.percentage)||0),0)/mine.length):0;
+  const badges=[];
+  if(mine.length>=1) badges.push({key:"first",icon:"★",title:"First Quiz",text:"Completed your first quiz."});
+  if(best>=90) badges.push({key:"master",icon:"◆",title:"High Scorer",text:"Scored 90% or higher."});
+  if(mine.length>=5) badges.push({key:"five",icon:"✦",title:"Quiz Explorer",text:"Completed five quizzes."});
+  if(streak>=3) badges.push({key:"streak",icon:"🔥",title:"On a Streak",text:streak+" consecutive days."});
+  const categories={}; mine.forEach(a=>{categories[a.category||"General"]=(categories[a.category||"General"]||0)+1;});
+  const preferred=Object.entries(categories).sort((a,b)=>b[1]-a[1])[0]?.[0];
+  const recommended=quizzes().filter(q=>q.status==="published" && (!preferred || String(q.category||"").toLowerCase()===String(preferred).toLowerCase())).slice(0,6);
+  const notifications=[];
+  if(mine.length===0) notifications.push({type:"info",title:"Welcome to Mind Quiz",text:"Take your first quiz to start your learning record."});
+  if(streak>=3) notifications.push({type:"success",title:"Streak active",text:"You have a "+streak+" day learning streak."});
+  if(best>=90) notifications.push({type:"success",title:"Great performance",text:"Your best score is "+best+"%."});
+  res.json({stats:{attempts:mine.length,average:avg,best,streak},badges,recommended,notifications});
+});
+
+app.get("/api/attempts/:id",auth,(req,res)=>{
+  const a=attempts().find(x=>x.id===req.params.id);
+  if(!a) return res.status(404).json({message:"Attempt not found."});
+  const own=a.userId===req.user.id;
+  const quiz=quizzes().find(q=>q.id===a.quizId);
+  const facultyOwn=req.user.role.toLowerCase()==="faculty" && quiz?.createdBy===req.user.id;
+  if(req.user.role.toLowerCase()!=="admin" && !own && !facultyOwn) return res.status(403).json({message:"You cannot view this attempt."});
+  res.json({attempt:a});
+});
+
+app.delete("/api/admin/users/:id",auth,(req,res)=>{
+  if(req.user.role.toLowerCase()!=="admin") return res.status(403).json({message:"Admin only."});
+  if(req.params.id===req.user.id) return res.status(400).json({message:"You cannot delete your own admin account."});
+  const all=users(), target=all.find(u=>u.id===req.params.id);
+  if(!target) return res.status(404).json({message:"User not found."});
+  fs.writeFileSync(USERS_FILE,JSON.stringify(all.filter(u=>u.id!==req.params.id),null,2));
+  const qs=quizzes(), owned=qs.filter(q=>q.createdBy===req.params.id).map(q=>q.id);
+  saveQuizzes(qs.filter(q=>q.createdBy!==req.params.id));
+  saveAttempts(attempts().filter(a=>a.userId!==req.params.id && !owned.includes(a.quizId)));
+  res.json({ok:true});
+});
+
+app.patch("/api/admin/users/:id/role",auth,(req,res)=>{
+  if(req.user.role.toLowerCase()!=="admin") return res.status(403).json({message:"Admin only."});
+  const role=String(req.body?.role||"").toLowerCase();
+  if(!["student","faculty","admin"].includes(role)) return res.status(400).json({message:"Invalid role."});
+  if(req.params.id===req.user.id && role!=="admin") return res.status(400).json({message:"You cannot remove your own admin role."});
+  const all=users(), i=all.findIndex(u=>u.id===req.params.id);
+  if(i<0) return res.status(404).json({message:"User not found."});
+  all[i].role=role.charAt(0).toUpperCase()+role.slice(1);
+  fs.writeFileSync(USERS_FILE,JSON.stringify(all,null,2));
+  res.json({user:safeUser(all[i])});
+});
+
+app.delete("/api/admin/quizzes/:id",auth,(req,res)=>{
+  if(req.user.role.toLowerCase()!=="admin") return res.status(403).json({message:"Admin only."});
+  const all=quizzes(), q=all.find(x=>x.id===req.params.id);
+  if(!q) return res.status(404).json({message:"Quiz not found."});
+  saveQuizzes(all.filter(x=>x.id!==req.params.id));
+  saveAttempts(attempts().filter(a=>a.quizId!==req.params.id));
+  res.json({ok:true});
+});
+
 app.get("/api/admin/overview",auth,(req,res)=>{
   if(req.user.role.toLowerCase()!=="admin") return res.status(403).json({message:"Admin only."});
   const allUsers=users(), allQuizzes=quizzes(), allAttempts=attempts();
   res.json({
-    stats:{users:allUsers.length,students:allUsers.filter(u=>u.role==="Student").length,faculty:allUsers.filter(u=>u.role==="Faculty").length,admins:allUsers.filter(u=>u.role==="Admin").length,quizzes:allQuizzes.length,published:allQuizzes.filter(q=>q.status==="published").length,attempts:allAttempts.length},
+    stats:{users:allUsers.length,students:allUsers.filter(u=>u.role.toLowerCase()==="student").length,faculty:allUsers.filter(u=>u.role.toLowerCase()==="faculty").length,admins:allUsers.filter(u=>u.role.toLowerCase()==="admin").length,quizzes:allQuizzes.length,published:allQuizzes.filter(q=>q.status==="published").length,attempts:allAttempts.length},
     users:allUsers.map(safeUser),
     quizzes:allQuizzes.map(q=>({id:q.id,title:q.title,category:q.category,createdByName:q.createdByName,createdAt:q.createdAt,status:q.status,questions:q.questions.length})),
     attempts:allAttempts
