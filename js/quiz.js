@@ -35,14 +35,18 @@ function start(quiz){
 function render(){
   if(!questions.length)return;
   const q=questions[current];
-  document.getElementById('questionNumber').textContent=current+1;
+  document.getElementById('questionNumber').textContent='QUESTION '+(current+1)+' OF '+questions.length;
   document.getElementById('questionText').textContent=q.text;
   const wrap=document.getElementById('options');
   wrap.innerHTML=q.options.map((o,i)=>'<button class="answer-option '+(answers[current]===i?'selected':'')+'" data-i="'+i+'"><span>'+String.fromCharCode(65+i)+'</span>'+o+'</button>').join('');
   wrap.querySelectorAll('button').forEach(b=>b.onclick=()=>{answers[current]=+b.dataset.i;render()});
   document.getElementById('progress').style.width=((current+1)/questions.length*100)+'%';
+  document.getElementById('answeredCount').textContent=answers.filter(a=>a!==null).length+' answered';
+  const numbers=document.getElementById('numbers');
+  numbers.innerHTML=questions.map((_,i)=>'<button class="q-number '+(i===current?'current ':'')+(answers[i]!==null?'answered':'')+'" data-i="'+i+'">'+(i+1)+'</button>').join('');
+  numbers.querySelectorAll('button').forEach(b=>b.onclick=()=>{current=Number(b.dataset.i);render()});
   document.getElementById('prevBtn').disabled=current===0;
-  document.getElementById('nextBtn').textContent=current===questions.length-1?'Submit Quiz':'Next';
+  document.getElementById('nextBtn').textContent=current===questions.length-1?'Submit Quiz':'Next Question →';
 }
 function startTimer(seconds){
   clearInterval(timer); let left=seconds;
