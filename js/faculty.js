@@ -15,13 +15,19 @@ async function renderFaculty(){
  }catch(e){console.error(e);}
 }
 window.manageQuiz=async id=>{
- const d=await facultyData(), q=d.quizzes.find(x=>x.id===id); if(!q)return;
- const action=prompt('Enter action: edit, publish, draft, delete','edit'); if(!action)return;
- if(action==='delete'){if(!confirm('Delete this quiz permanently?'))return;await fetch(api+'/api/faculty/quizzes/'+id,{method:'DELETE',headers:{Authorization:'Bearer '+token()}});}
- else if(action==='publish'||action==='draft'){await fetch(api+'/api/faculty/quizzes/'+id+'/status',{method:'PATCH',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token()},body:JSON.stringify({status:action})});}
- else if(action==='edit'){ window.location.href='create-quiz.html?edit='+encodeURIComponent(id); return; }
-
- await renderFaculty();
+ const d=await facultyData(),q=d.quizzes.find(x=>x.id===id);if(!q)return;
+ document.getElementById('facultyActionModal')?.remove();
+ const modal=document.createElement('div');modal.id='facultyActionModal';modal.className='faculty-action-modal';
+ modal.innerHTML='<div class="faculty-action-card"><button class="modal-x" id="closeFacultyAction">×</button><span>QUIZ MANAGEMENT</span><h2>'+esc(q.title)+'</h2><p>Choose an action for this quiz.</p><div class="faculty-action-buttons"><button data-action="edit">✏ Edit Quiz</button><button data-action="'+(q.status==='published'?'draft':'publish')+'">'+(q.status==='published'?'⏸ Move to Draft':'▶ Publish Quiz')+'</button><button data-action="delete" class="danger">🗑 Delete Quiz</button></div></div>';
+ document.body.appendChild(modal);
+ modal.querySelector('#closeFacultyAction').onclick=()=>modal.remove();
+ modal.querySelectorAll('[data-action]').forEach(btn=>btn.onclick=async()=>{
+  const action=btn.dataset.action;
+  if(action==='edit'){location.href='create-quiz.html?edit='+encodeURIComponent(id);return}
+  if(action==='delete'&&!confirm('Delete this quiz permanently?'))return;
+  const opts=action==='delete'?{method:'DELETE',headers:{Authorization:'Bearer '+token()}}:{method:'PATCH',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token()},body:JSON.stringify({status:action})};
+  const r=await fetch(api+(action==='delete'?'/api/faculty/quizzes/'+id:'/api/faculty/quizzes/'+id+'/status'),opts);const data=await r.json();if(!r.ok){alert(data.message||'Action failed');return}modal.remove();renderFaculty();
+ });
 };
 renderFaculty();
 (function(){const u=MindQuizAuth?.getUser?.();if(!u)return;const name=u.name||u.username||'Faculty';const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v};set('facultyProfileName',name);set('facultyProfileUsername',u.username||'');set('facultyProfileEmail',u.email||'');set('facultyProfileAvatar',name.charAt(0).toUpperCase());document.getElementById('facultyAccountLogout')?.addEventListener('click',()=>MindQuizAuth.logout())})();
