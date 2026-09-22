@@ -44,6 +44,24 @@ function safeUser(u){ return {id:u.id,username:u.username,email:u.email,role:u.r
 
 app.get("/api/health",(req,res)=>res.json({ok:true,service:"Mind Quiz API"}));
 
+app.post("/api/register",(req,res)=>{
+  const {username,password,email}=req.body||{};
+  const cleanUsername=String(username||"").trim();
+  const cleanEmail=String(email||"").trim();
+  if(!cleanUsername || !password || !cleanEmail) return res.status(400).json({message:"Name, email and password are required."});
+  if(cleanUsername.length<3) return res.status(400).json({message:"Username must be at least 3 characters."});
+  if(String(password).length<6) return res.status(400).json({message:"Password must be at least 6 characters."});
+  const all=users();
+  if(all.some(u=>u.username.toLowerCase()===cleanUsername.toLowerCase())) return res.status(409).json({message:"Username already exists."});
+  if(all.some(u=>u.email.toLowerCase()===cleanEmail.toLowerCase())) return res.status(409).json({message:"Email already registered."});
+  const user=seedUser(cleanUsername,cleanEmail,"Student",String(password));
+  all.push(user);
+  fs.writeFileSync(USERS_FILE,JSON.stringify(all,null,2));
+  const token=crypto.randomBytes(32).toString("hex");
+  sessions.set(token,{userId:user.id,expiresAt:Date.now()+8*60*60*1000});
+  res.status(201).json({token,user:safeUser(user)});
+});
+
 app.post("/api/login",(req,res)=>{
   const {username,password,role}=req.body||{};
   if(!username||!password||!role) return res.status(400).json({message:"Username, password and role are required."});
