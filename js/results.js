@@ -1,1 +1,24 @@
-const data=[['Python Fundamentals','22 Sep 2026','92%','Excellent'],['Engineering Mathematics','20 Sep 2026','84%','Good'],['General Knowledge','18 Sep 2026','76%','Passed'],['Data Structures','15 Sep 2026','88%','Excellent'],['Python Functions','12 Sep 2026','79%','Good']];const list=document.getElementById('resultsList');const filter=document.getElementById('filter');function render(){const v=filter.value;const rows=data.filter(x=>v==='All results'||(v==='Excellent'&&x[3]==='Excellent')||(v==='Good'&&x[3]==='Good'));list.innerHTML=rows.length?rows.map(x=>'<div class="result-item"><div><b>'+x[0]+'</b><small>'+x[1]+'</small></div><span>Completed</span><strong>'+x[2]+'</strong><i>'+x[3]+'</i></div>').join(''):'<div class="empty">No results match this filter.</div>'}filter.onchange=render;render();
+let allResults=[];
+const list=document.getElementById('resultsList');
+const filter=document.getElementById('filter');
+function render(){
+ const mode=filter.value;
+ const data=allResults.filter(r=>mode==='All results'||(mode==='Excellent'?r.percentage>=80:r.percentage>=60&&r.percentage<80));
+ list.innerHTML=data.length?data.map(r=>'<div class="result-row"><div><b>'+r.quizTitle+'</b><small>'+new Date(r.submittedAt).toLocaleString()+'</small></div><strong>'+r.score+'/'+r.total+' <span>'+r.percentage+'%</span></strong></div>').join(''):'<div class="empty-results">No quiz attempts found yet. Take your first quiz!</div>';
+ const count=allResults.length, avg=count?Math.round(allResults.reduce((s,r)=>s+r.percentage,0)/count):0, best=count?Math.max(...allResults.map(r=>r.percentage)):0;
+ const metrics=document.querySelectorAll('.result-metrics b'); if(metrics.length){metrics[0].textContent=count;metrics[1].textContent=avg+'%';metrics[2].textContent=best+'%';}
+ const overall=document.querySelector('.overall strong'); if(overall)overall.textContent=avg+'%';
+ const progress=document.querySelector('.mini-progress b'); if(progress)progress.textContent=avg+'%';
+ const track=document.querySelector('.mini-progress .track i'); if(track)track.style.width=avg+'%';
+}
+async function load(){
+ if(window.MindQuizAuth && !MindQuizAuth.requireRole('student')) return;
+ try{
+  const r=await fetch(MindQuizAuth.API_BASE+'/api/my-attempts',{headers:{Authorization:'Bearer '+localStorage.getItem('mindQuizToken')}});
+  const d=await r.json(); if(!r.ok)throw new Error(d.message||'Could not load results.');
+  allResults=d.attempts||[];
+ }catch(e){allResults=[];}
+ render();
+}
+filter.addEventListener('change',render);
+load();
