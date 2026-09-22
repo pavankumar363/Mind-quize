@@ -141,6 +141,17 @@ app.get("/api/my-attempts",auth,(req,res)=>{
   res.json({attempts:attempts().filter(a=>a.userId===req.user.id)});
 });
 
+app.get("/api/admin/overview",auth,(req,res)=>{
+  if(req.user.role.toLowerCase()!=="admin") return res.status(403).json({message:"Admin only."});
+  const allUsers=users(), allQuizzes=quizzes(), allAttempts=attempts();
+  res.json({
+    stats:{users:allUsers.length,students:allUsers.filter(u=>u.role==="Student").length,faculty:allUsers.filter(u=>u.role==="Faculty").length,admins:allUsers.filter(u=>u.role==="Admin").length,quizzes:allQuizzes.length,published:allQuizzes.filter(q=>q.status==="published").length,attempts:allAttempts.length},
+    users:allUsers.map(safeUser),
+    quizzes:allQuizzes.map(q=>({id:q.id,title:q.title,category:q.category,createdByName:q.createdByName,createdAt:q.createdAt,status:q.status,questions:q.questions.length})),
+    attempts:allAttempts
+  });
+});
+
 app.get("/api/faculty/attempts",auth,(req,res)=>{
   if(!["faculty","admin"].includes(req.user.role.toLowerCase())) return res.status(403).json({message:"Faculty or Admin only."});
   const qs=new Set(quizzes().filter(q=>req.user.role.toLowerCase()==="admin" || q.createdBy===req.user.id).map(q=>q.id));
