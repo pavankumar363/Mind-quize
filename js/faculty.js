@@ -1,0 +1,1 @@
+const create=document.getElementById('createQuiz');if(create)create.addEventListener('click',()=>{const title=document.getElementById('quizTitle').value.trim();if(!title){document.getElementById('quizTitle').focus();return}create.textContent='Quiz Created ✓';create.style.background='#9af2a4';setTimeout(()=>{create.textContent='Create Quiz →'},1800)});
