@@ -34,3 +34,12 @@ renderFaculty();
 async function facultyUpdateProfile(name,email){const r=await fetch(api+'/api/profile',{method:'PUT',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token()},body:JSON.stringify({name,email})});const d=await r.json();if(!r.ok)throw new Error(d.message||'Unable to update profile');localStorage.setItem('mindQuizUser',JSON.stringify(d.user));return d.user}
 async function facultyChangePassword(currentPassword,newPassword){const r=await fetch(api+'/api/change-password',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token()},body:JSON.stringify({currentPassword,newPassword})});const d=await r.json();if(!r.ok)throw new Error(d.message||'Unable to change password');return d}
 (function(){const u=MindQuizAuth?.getUser?.();if(!u)return;const ni=document.getElementById('facultyEditName'),ei=document.getElementById('facultyEditEmail');if(ni)ni.value=u.name||u.username||'';if(ei)ei.value=u.email||'';document.getElementById('facultySaveProfile')?.addEventListener('click',async()=>{const m=document.getElementById('facultyProfileMessage');try{const x=await facultyUpdateProfile(ni.value,ei.value);m.textContent='Profile saved ✓';m.className='account-message success';document.getElementById('facultyProfileName').textContent=x.name;document.getElementById('facultyProfileEmail').textContent=x.email}catch(e){m.textContent=e.message;m.className='account-message error'}});document.getElementById('facultyChangePassword')?.addEventListener('click',async()=>{const m=document.getElementById('facultyPasswordMessage');try{await facultyChangePassword(document.getElementById('facultyCurrentPassword').value,document.getElementById('facultyNewPassword').value);m.textContent='Password changed ✓';m.className='account-message success';document.getElementById('facultyCurrentPassword').value='';document.getElementById('facultyNewPassword').value=''}catch(e){m.textContent=e.message;m.className='account-message error'}})})();
+
+async function loadFacultyAnalytics(){
+ try{
+  const d=await facultyData(),el=document.getElementById('facultyAnalytics');if(!el)return;
+  const rows=d.quizzes.slice().sort((a,b)=>b.attempts-a.attempts).slice(0,5),max=Math.max(1,...rows.map(q=>q.attempts));
+  el.innerHTML=rows.length?rows.map(q=>'<div class="faculty-bar"><div><b>'+esc(q.title)+'</b><small>'+q.attempts+' attempts · '+q.average+'% avg.</small></div><i><b style="width:'+Math.round(q.attempts/max*100)+'%"></b></i></div>').join(''):'<p>No quiz analytics yet.</p>';
+ }catch(e){}
+}
+loadFacultyAnalytics();
