@@ -110,7 +110,7 @@ app.post("/api/quizzes",auth,(req,res)=>{
     description:String(body.description||""),
     time:Number(body.time)||15,
     questions:body.questions,
-    status:"published",
+    status:body.status==="draft"?"draft":"published",
     createdBy:req.user.id,
     createdByName:req.user.username,
     createdAt:new Date().toISOString()
