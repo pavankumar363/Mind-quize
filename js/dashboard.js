@@ -1,0 +1,1 @@
+const menu=document.getElementById('dashMenu');const sidebar=document.getElementById('sidebar');if(menu)menu.addEventListener('click',()=>sidebar.classList.toggle('open'));document.querySelectorAll('.quiz-card button').forEach(btn=>btn.addEventListener('click',()=>{btn.textContent='Quiz selected ✓';btn.style.background='#7bea8b';btn.style.color='#102015'}));
