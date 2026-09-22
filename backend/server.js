@@ -152,6 +152,41 @@ app.get("/api/admin/overview",auth,(req,res)=>{
   });
 });
 
+app.get("/api/faculty/overview",auth,(req,res)=>{
+  if(req.user.role.toLowerCase()!=="faculty") return res.status(403).json({message:"Faculty only."});
+  const qs=quizzes().filter(q=>q.createdBy===req.user.id), ids=new Set(qs.map(q=>q.id));
+  const ats=attempts().filter(a=>ids.has(a.quizId));
+  res.json({
+    user:safeUser(req.user),
+    stats:{quizzes:qs.length,active:qs.filter(q=>q.status==="published").length,attempts:ats.length,average:ats.length?Math.round(ats.reduce((s,a)=>s+a.percentage,0)/ats.length):0},
+    quizzes:qs.map(q=>({...q,attempts:ats.filter(a=>a.quizId===q.id).length,average:ats.filter(a=>a.quizId===q.id).length?Math.round(ats.filter(a=>a.quizId===q.id).reduce((s,a)=>s+a.percentage,0)/ats.filter(a=>a.quizId===q.id).length):0})),
+    attempts:ats
+  });
+});
+
+app.put("/api/faculty/quizzes/:id",auth,(req,res)=>{
+  if(req.user.role.toLowerCase()!=="faculty") return res.status(403).json({message:"Faculty only."});
+  const all=quizzes(), i=all.findIndex(q=>q.id===req.params.id && q.createdBy===req.user.id);
+  if(i<0) return res.status(404).json({message:"Quiz not found."});
+  const b=req.body||{}, q=all[i];
+  all[i]={...q,title:String(b.title??q.title).trim(),category:String(b.category??q.category),description:String(b.description??q.description),time:Number(b.time)||q.time,questions:Array.isArray(b.questions)?b.questions:q.questions,status:b.status==="draft"?"draft":"published",updatedAt:new Date().toISOString()};
+  saveQuizzes(all); res.json({quiz:all[i]});
+});
+
+app.delete("/api/faculty/quizzes/:id",auth,(req,res)=>{
+  if(req.user.role.toLowerCase()!=="faculty") return res.status(403).json({message:"Faculty only."});
+  const all=quizzes(), q=all.find(x=>x.id===req.params.id && x.createdBy===req.user.id);
+  if(!q) return res.status(404).json({message:"Quiz not found."});
+  saveQuizzes(all.filter(x=>x.id!==req.params.id)); res.json({ok:true});
+});
+
+app.patch("/api/faculty/quizzes/:id/status",auth,(req,res)=>{
+  if(req.user.role.toLowerCase()!=="faculty") return res.status(403).json({message:"Faculty only."});
+  const all=quizzes(), i=all.findIndex(q=>q.id===req.params.id && q.createdBy===req.user.id);
+  if(i<0) return res.status(404).json({message:"Quiz not found."});
+  all[i].status=req.body?.status==="draft"?"draft":"published"; all[i].updatedAt=new Date().toISOString(); saveQuizzes(all); res.json({quiz:all[i]});
+});
+
 app.get("/api/faculty/attempts",auth,(req,res)=>{
   if(!["faculty","admin"].includes(req.user.role.toLowerCase())) return res.status(403).json({message:"Faculty or Admin only."});
   const qs=new Set(quizzes().filter(q=>req.user.role.toLowerCase()==="admin" || q.createdBy===req.user.id).map(q=>q.id));
