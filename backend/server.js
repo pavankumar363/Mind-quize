@@ -93,7 +93,7 @@ app.put("/api/profile",auth,(req,res)=>{
   const cleanName=String(name??req.user.name??"").trim();
   const cleanEmail=String(email??req.user.email??"").trim();
   if(!cleanName || !cleanEmail) return res.status(400).json({message:"Name and email are required."});
-  if(!/^\\S+@\\S+\\.\\S+$/.test(cleanEmail)) return res.status(400).json({message:"Enter a valid email address."});
+  if(!/^\S+@\S+\.\S+$/.test(cleanEmail)) return res.status(400).json({message:"Enter a valid email address."});
   const all=users(), i=all.findIndex(u=>u.id===req.user.id);
   if(i<0) return res.status(404).json({message:"User account not found."});
   if(all.some((u,idx)=>idx!==i && u.email.toLowerCase()===cleanEmail.toLowerCase())) return res.status(409).json({message:"Email already registered."});
@@ -158,6 +158,18 @@ app.post("/api/attempts",(req,res)=>{
   const attempt={id:crypto.randomUUID(),quizId,userId:user.id,studentUsername:user.username,quizTitle:quiz.title,score:safeScore,total:quiz.questions.length,percentage:Math.round((safeScore/quiz.questions.length)*100),answers:Array.isArray(answers)?answers:[],timeTaken:Number(timeTaken)||0,submittedAt:new Date().toISOString()};
   const all=attempts(); all.unshift(attempt); saveAttempts(all);
   res.status(201).json({attempt});
+});
+
+app.get("/api/leaderboard",auth,(req,res)=>{
+  const allUsers=users(), allAttempts=attempts();
+  const map=new Map();
+  allAttempts.forEach(a=>{
+    const u=allUsers.find(x=>x.id===a.userId); if(!u || u.role.toLowerCase()!=="student") return;
+    const item=map.get(u.id)||{userId:u.id,name:u.name||u.username,username:u.username,attempts:0,totalScore:0,best:0};
+    item.attempts++; item.totalScore+=Number(a.percentage)||0; item.best=Math.max(item.best,Number(a.percentage)||0); map.set(u.id,item);
+  });
+  const rows=[...map.values()].map(x=>({...x,average:Math.round(x.totalScore/x.attempts)})).sort((a,b)=>b.average-a.average||b.best-a.best||b.attempts-a.attempts).slice(0,20);
+  res.json({leaderboard:rows.map((x,i)=>({...x,rank:i+1}))});
 });
 
 app.get("/api/my-attempts",auth,(req,res)=>{
