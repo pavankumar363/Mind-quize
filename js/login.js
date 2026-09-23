@@ -24,7 +24,7 @@ document.getElementById('loginForm').addEventListener('submit',async e=>{
   note.style.color='';
 
   try{
-    const response=await fetch((window.MindQuizAuth?.API_BASE||'http://localhost:4000')+'/api/login',{
+    const response=await fetch((window.MindQuizAuth?.API_BASE||'http://localhost:4000')+'/login',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({username:username.value.trim(),password:password.value,role})
