@@ -7,7 +7,7 @@ form.addEventListener('submit',async e=>{
  if(password!==confirm){msg.textContent='Passwords do not match.';msg.style.color='#ff8f8f';return;}
  msg.textContent='Creating your account…';msg.style.color='';
  try{
-  const response=await fetch(MindQuizAuth.API_BASE+'/api/register',{
+  const response=await fetch(MindQuizAuth.API_BASE+'/register',{
    method:'POST',headers:{'Content-Type':'application/json'},
    body:JSON.stringify({
     fullName:document.getElementById('fullName').value.trim(),
