@@ -19,8 +19,8 @@ async function loadStudentData(){
  }
  try{
   const [r,ins]=await Promise.all([
-   fetch(MindQuizAuth.API_BASE+'/api/my-attempts',{headers:authHeaders()}),
-   fetch(MindQuizAuth.API_BASE+'/api/student/insights',{headers:authHeaders()})
+   fetch(MindQuizAuth.API_BASE+'/my-attempts',{headers:authHeaders()}),
+   fetch(MindQuizAuth.API_BASE+'/student/insights',{headers:authHeaders()})
   ]);
   const d=await r.json(), x=await ins.json();
   if(!r.ok)throw new Error(d.message||'Unable to load results');
@@ -44,15 +44,15 @@ function renderQuizzes(list){
 }
 async function loadAvailableQuizzes(){
  const el=document.getElementById('quizList');if(!el||!window.MindQuizAuth)return;
- try{const r=await fetch(MindQuizAuth.API_BASE+'/api/quizzes',{headers:authHeaders()});const d=await r.json();if(!r.ok)throw new Error(d.message||'Unable to load quizzes');allQuizzes=d.quizzes||[];populateCategories();renderQuizzes(allQuizzes);}
+ try{const r=await fetch(MindQuizAuth.API_BASE+'/quizzes',{headers:authHeaders()});const d=await r.json();if(!r.ok)throw new Error(d.message||'Unable to load quizzes');allQuizzes=d.quizzes||[];populateCategories();renderQuizzes(allQuizzes);}
  catch(e){el.innerHTML='<p>Unable to load quizzes. Start the Mind Quiz server and refresh.</p>'}
 }
 function populateCategories(){const select=document.getElementById('quizCategory');if(!select)return;const cats=[...new Set(allQuizzes.map(q=>q.category||'General'))].sort();select.innerHTML='<option value="all">All categories</option>'+cats.map(c=>'<option value="'+esc(c)+'">'+esc(c)+'</option>').join('');}
 function applyQuizFilters(){const q=(document.getElementById('quizSearch')?.value||'').toLowerCase().trim(),cat=(document.getElementById('quizCategory')?.value||'all').toLowerCase();renderQuizzes(allQuizzes.filter(x=>(!q||[x.title,x.description,x.category].join(' ').toLowerCase().includes(q))&&(cat==='all'||String(x.category||'').toLowerCase()===cat)));}
 document.getElementById('quizSearch')?.addEventListener('input',applyQuizFilters);
 document.getElementById('quizCategory')?.addEventListener('change',applyQuizFilters);
-async function updateProfile(name,email){const r=await fetch(MindQuizAuth.API_BASE+'/api/profile',{method:'PUT',headers:{...authHeaders(),'Content-Type':'application/json'},body:JSON.stringify({name,email})});const d=await r.json();if(!r.ok)throw new Error(d.message||'Unable to update profile');localStorage.setItem('mindQuizUser',JSON.stringify(d.user));return d.user}
-async function changePassword(currentPassword,newPassword){const r=await fetch(MindQuizAuth.API_BASE+'/api/change-password',{method:'POST',headers:{...authHeaders(),'Content-Type':'application/json'},body:JSON.stringify({currentPassword,newPassword})});const d=await r.json();if(!r.ok)throw new Error(d.message||'Unable to change password');return d}
+async function updateProfile(name,email){const r=await fetch(MindQuizAuth.API_BASE+'/profile',{method:'PUT',headers:{...authHeaders(),'Content-Type':'application/json'},body:JSON.stringify({name,email})});const d=await r.json();if(!r.ok)throw new Error(d.message||'Unable to update profile');localStorage.setItem('mindQuizUser',JSON.stringify(d.user));return d.user}
+async function changePassword(currentPassword,newPassword){const r=await fetch(MindQuizAuth.API_BASE+'/change-password',{method:'POST',headers:{...authHeaders(),'Content-Type':'application/json'},body:JSON.stringify({currentPassword,newPassword})});const d=await r.json();if(!r.ok)throw new Error(d.message||'Unable to change password');return d}
 document.getElementById('studentSaveProfile')?.addEventListener('click',async()=>{const m=document.getElementById('studentProfileMessage');try{const x=await updateProfile(document.getElementById('studentEditName').value,document.getElementById('studentEditEmail').value);m.textContent='Profile saved ✓';m.className='account-message success';setText('profileName',x.name);setText('profileEmail',x.email)}catch(e){m.textContent=e.message;m.className='account-message error'}});
 document.getElementById('studentChangePassword')?.addEventListener('click',async()=>{const m=document.getElementById('studentPasswordMessage');try{await changePassword(document.getElementById('studentCurrentPassword').value,document.getElementById('studentNewPassword').value);m.textContent='Password changed ✓';m.className='account-message success';document.getElementById('studentCurrentPassword').value='';document.getElementById('studentNewPassword').value=''}catch(e){m.textContent=e.message;m.className='account-message error'}});
 document.getElementById('studentLogout')?.addEventListener('click',e=>{e.preventDefault();MindQuizAuth.logout()});
