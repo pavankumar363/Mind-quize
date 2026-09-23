@@ -1,7 +1,7 @@
 if(!MindQuizAuth.requireRole('faculty')) throw new Error('Faculty access required.');
 const api=MindQuizAuth.API_BASE, token=()=>localStorage.getItem('mindQuizToken');
 async function facultyData(){
- const r=await fetch(api+'/api/faculty/overview',{headers:{Authorization:'Bearer '+token()}});
+ const r=await fetch(api+'/faculty/overview',{headers:{Authorization:'Bearer '+token()}});
  const d=await r.json(); if(!r.ok)throw new Error(d.message||'Unable to load faculty data'); return d;
 }
 function esc(v){return String(v??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
@@ -26,13 +26,13 @@ window.manageQuiz=async id=>{
   if(action==='edit'){location.href='create-quiz.html?edit='+encodeURIComponent(id);return}
   if(action==='delete'&&!confirm('Delete this quiz permanently?'))return;
   const opts=action==='delete'?{method:'DELETE',headers:{Authorization:'Bearer '+token()}}:{method:'PATCH',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token()},body:JSON.stringify({status:action})};
-  const r=await fetch(api+(action==='delete'?'/api/faculty/quizzes/'+id:'/api/faculty/quizzes/'+id+'/status'),opts);const data=await r.json();if(!r.ok){alert(data.message||'Action failed');return}modal.remove();renderFaculty();
+  const r=await fetch(api+(action==='delete'?'/faculty/quizzes/'+id:'/faculty/quizzes/'+id+'/status'),opts);const data=await r.json();if(!r.ok){alert(data.message||'Action failed');return}modal.remove();renderFaculty();
  });
 };
 renderFaculty();
 (function(){const u=MindQuizAuth?.getUser?.();if(!u)return;const name=u.name||u.username||'Faculty';const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v};set('facultyProfileName',name);set('facultyProfileUsername',u.username||'');set('facultyProfileEmail',u.email||'');set('facultyProfileAvatar',name.charAt(0).toUpperCase());document.getElementById('facultyAccountLogout')?.addEventListener('click',()=>MindQuizAuth.logout())})();
-async function facultyUpdateProfile(name,email){const r=await fetch(api+'/api/profile',{method:'PUT',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token()},body:JSON.stringify({name,email})});const d=await r.json();if(!r.ok)throw new Error(d.message||'Unable to update profile');localStorage.setItem('mindQuizUser',JSON.stringify(d.user));return d.user}
-async function facultyChangePassword(currentPassword,newPassword){const r=await fetch(api+'/api/change-password',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token()},body:JSON.stringify({currentPassword,newPassword})});const d=await r.json();if(!r.ok)throw new Error(d.message||'Unable to change password');return d}
+async function facultyUpdateProfile(name,email){const r=await fetch(api+'/profile',{method:'PUT',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token()},body:JSON.stringify({name,email})});const d=await r.json();if(!r.ok)throw new Error(d.message||'Unable to update profile');localStorage.setItem('mindQuizUser',JSON.stringify(d.user));return d.user}
+async function facultyChangePassword(currentPassword,newPassword){const r=await fetch(api+'/change-password',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token()},body:JSON.stringify({currentPassword,newPassword})});const d=await r.json();if(!r.ok)throw new Error(d.message||'Unable to change password');return d}
 (function(){const u=MindQuizAuth?.getUser?.();if(!u)return;const ni=document.getElementById('facultyEditName'),ei=document.getElementById('facultyEditEmail');if(ni)ni.value=u.name||u.username||'';if(ei)ei.value=u.email||'';document.getElementById('facultySaveProfile')?.addEventListener('click',async()=>{const m=document.getElementById('facultyProfileMessage');try{const x=await facultyUpdateProfile(ni.value,ei.value);m.textContent='Profile saved ✓';m.className='account-message success';document.getElementById('facultyProfileName').textContent=x.name;document.getElementById('facultyProfileEmail').textContent=x.email}catch(e){m.textContent=e.message;m.className='account-message error'}});document.getElementById('facultyChangePassword')?.addEventListener('click',async()=>{const m=document.getElementById('facultyPasswordMessage');try{await facultyChangePassword(document.getElementById('facultyCurrentPassword').value,document.getElementById('facultyNewPassword').value);m.textContent='Password changed ✓';m.className='account-message success';document.getElementById('facultyCurrentPassword').value='';document.getElementById('facultyNewPassword').value=''}catch(e){m.textContent=e.message;m.className='account-message error'}})})();
 
 async function loadFacultyAnalytics(){
