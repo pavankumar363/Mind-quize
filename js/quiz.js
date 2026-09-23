@@ -14,7 +14,7 @@ async function loadQuiz(){
   const local=getQuiz();
   const id=params.get('id');
   try{
-    const r=await fetch(MindQuizAuth.API_BASE+'/api/quizzes',{headers:{Authorization:'Bearer '+localStorage.getItem('mindQuizToken')}});
+    const r=await fetch(MindQuizAuth.API_BASE+'/quizzes',{headers:{Authorization:'Bearer '+localStorage.getItem('mindQuizToken')}});
     const data=await r.json();
     const remote=(data.quizzes||[]).find(q=>q.id===id) || (data.quizzes||[]).find(q=>!id) || local;
     if(remote) start(remote); else renderFallback();
@@ -61,7 +61,7 @@ async function submitQuiz(auto=false){
   const timeTaken=Math.round((Date.now()-startedAt)/1000);
   const payload={quizId,answers,score,total:quiz.length,timeTaken};
   try{
-    const r=await fetch(MindQuizAuth.API_BASE+'/api/attempts',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+localStorage.getItem('mindQuizToken')},body:JSON.stringify(payload)});
+    const r=await fetch(MindQuizAuth.API_BASE+'/attempts',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+localStorage.getItem('mindQuizToken')},body:JSON.stringify(payload)});
     const data=await r.json(); if(!r.ok)throw new Error(data.message||'Could not save result.');
     localStorage.setItem('mindQuizLastAttempt',JSON.stringify(data.attempt));
   }catch(e){localStorage.setItem('mindQuizLastAttempt',JSON.stringify({quizTitle:document.getElementById('quizTitle').textContent,score,total:quiz.length,percentage:Math.round(score/quiz.length*100),timeTaken}));}
