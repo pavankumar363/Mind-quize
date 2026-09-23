@@ -1,4 +1,4 @@
-const API_BASE = localStorage.getItem("mindQuizApi") || "http://localhost:4000";
+const API_BASE = localStorage.getItem("mindQuizApi") || "https://rvgmbpvksoyflfcebxyo.supabase.co/functions/v1/mind-quiz-api";
 
 function saveSession(data){
   localStorage.setItem("mindQuizToken",data.token);
