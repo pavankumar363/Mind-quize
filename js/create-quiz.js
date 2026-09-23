@@ -30,7 +30,7 @@ $('addQuestion').onclick=()=>{state.questions.push({text:'',options:['','','',''
 async function loadEdit(){
  if(!editId)return;
  try{
-  const r=await fetch(api+'/api/faculty/overview',{headers:{Authorization:'Bearer '+token()}});
+  const r=await fetch(api+'/faculty/overview',{headers:{Authorization:'Bearer '+token()}});
   const d=await r.json();if(!r.ok)throw new Error(d.message||'Unable to load quiz');
   const q=d.quizzes.find(x=>x.id===editId);if(!q)throw new Error('Quiz not found or you do not own it.');
   $('quizTitle').value=q.title||'';$('quizCategory').value=q.category||'Computer Science';$('quizDescription').value=q.description||'';$('quizTime').value=q.time||15;
@@ -45,7 +45,7 @@ async function saveQuizToServer(status){
  if(!q.title){$('quizTitle').focus();toast('Please enter a quiz title.');return}
  if(q.questions.some(x=>!x.text.trim()||x.options.some(o=>!String(o).trim()))){toast('Complete every question and option first.');return}
  try{
-  const r=await fetch(editId?api+'/api/faculty/quizzes/'+editId:api+'/api/quizzes',{method:editId?'PUT':'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token()},body:JSON.stringify(q)});
+  const r=await fetch(editId?api+'/faculty/quizzes/'+editId:api+'/quizzes',{method:editId?'PUT':'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token()},body:JSON.stringify(q)});
   const d=await r.json();if(!r.ok)throw new Error(d.message||'Save failed.');
   localStorage.setItem('mindQuizPublished',JSON.stringify(d.quiz));$('saveState').textContent=status==='draft'?'● Draft saved':'● Published';toast(editId?'Quiz updated successfully.':(status==='draft'?'Draft saved successfully.':'Quiz published successfully.'));setTimeout(()=>location.href='faculty.html',700);
  }catch(e){toast(e.message)}
