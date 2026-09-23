@@ -15,14 +15,14 @@ async function adminAction(url,opts={}){
  const d=await r.json();if(!r.ok)throw new Error(d.message||'Action failed');return d;
 }
 async function load(activeTab='overview'){
- try{const r=await fetch(api+'/api/admin/overview',{headers:{Authorization:'Bearer '+token()}});const d=await r.json();if(!r.ok)throw new Error(d.message||'Unable to load admin data');state=d;
+ try{const r=await fetch(api+'/admin/overview',{headers:{Authorization:'Bearer '+token()}});const d=await r.json();if(!r.ok)throw new Error(d.message||'Unable to load admin data');state=d;
  const m=document.querySelectorAll('.metric strong');if(m.length){m[0].textContent=d.stats.users;m[1].textContent=d.stats.faculty;m[2].textContent=d.stats.students;m[3].textContent=d.stats.quizzes;}
  render(activeTab);}
  catch(e){content.innerHTML='<div class="admin-panel"><p>'+esc(e.message)+'</p></div>';}
 }
-document.addEventListener('change',async e=>{const el=e.target;if(!el.matches('.role-select'))return;try{await adminAction('/api/admin/users/'+el.dataset.id+'/role',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({role:el.value})});await load('users')}catch(err){alert(err.message);await load('users')}});
+document.addEventListener('change',async e=>{const el=e.target;if(!el.matches('.role-select'))return;try{await adminAction('/admin/users/'+el.dataset.id+'/role',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({role:el.value})});await load('users')}catch(err){alert(err.message);await load('users')}});
 
-document.addEventListener('click',async e=>{const user=e.target.closest('[data-delete-user]'),quiz=e.target.closest('[data-delete-quiz]');try{if(user){if(!confirm('Delete this user and their data?'))return;await adminAction('/api/admin/users/'+user.dataset.deleteUser,{method:'DELETE'});await load('users')}else if(quiz){if(!confirm('Delete this quiz and its attempts?'))return;await adminAction('/api/admin/quizzes/'+quiz.dataset.deleteQuiz,{method:'DELETE'});await load('quizzes')}}catch(err){alert(err.message)}});
+document.addEventListener('click',async e=>{const user=e.target.closest('[data-delete-user]'),quiz=e.target.closest('[data-delete-quiz]');try{if(user){if(!confirm('Delete this user and their data?'))return;await adminAction('/admin/users/'+user.dataset.deleteUser,{method:'DELETE'});await load('users')}else if(quiz){if(!confirm('Delete this quiz and its attempts?'))return;await adminAction('/admin/quizzes/'+quiz.dataset.deleteQuiz,{method:'DELETE'});await load('quizzes')}}catch(err){alert(err.message)}});
 
 document.querySelectorAll('.admin-tab').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.admin-tab').forEach(x=>x.classList.remove('active'));b.classList.add('active');render(b.dataset.tab);}));
 document.getElementById('refreshAdmin')?.addEventListener('click',()=>{const active=document.querySelector('.admin-tab.active')?.dataset.tab||'overview';load(active)});
@@ -30,7 +30,7 @@ load();
 async function loadAnalytics(){
  const el=document.getElementById('adminAnalytics');if(!el)return;
  try{
-  const r=await fetch(api+'/api/admin/reports',{headers:{Authorization:'Bearer '+token()}});const d=await r.json();if(!r.ok)throw new Error(d.message);
+  const r=await fetch(api+'/admin/reports',{headers:{Authorization:'Bearer '+token()}});const d=await r.json();if(!r.ok)throw new Error(d.message);
   const max=Math.max(1,...d.categoryStats.map(x=>x.attempts));
   el.innerHTML='<div class="analytics-cards">'+[['Users',d.metrics.users],['Quizzes',d.metrics.quizzes],['Attempts',d.metrics.attempts],['Average',d.metrics.average+'%']].map(x=>'<div><span>'+x[0]+'</span><b>'+x[1]+'</b></div>').join('')+'</div><div class="analytics-grid"><div class="analytics-panel"><h3>Attempts by category</h3>'+ (d.categoryStats.length?d.categoryStats.map(x=>'<div class="bar-row"><span>'+esc(x.category)+'</span><i><b style="width:'+Math.round(x.attempts/max*100)+'%"></b></i><strong>'+x.attempts+'</strong></div>').join(''):'<p>No attempts yet.</p>')+'</div><div class="analytics-panel"><h3>Recent activity</h3>'+ (d.recent.length?d.recent.map(x=>'<div class="activity-row"><div><b>'+esc(x.quiz)+'</b><small>'+esc(x.student)+'</small></div><strong>'+x.score+'%</strong></div>').join(''):'<p>No recent activity.</p>')+'</div></div>';
  }catch(e){el.innerHTML='<p>'+esc(e.message)+'</p>'}
