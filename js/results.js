@@ -11,7 +11,7 @@ function render(){
  document.querySelectorAll('.result-click').forEach(b=>b.addEventListener('click',()=>showDetail(b.dataset.id)));
 }
 async function showDetail(id){
- try{const r=await fetch(MindQuizAuth.API_BASE+'/api/attempts/'+encodeURIComponent(id),{headers:{Authorization:'Bearer '+localStorage.getItem('mindQuizToken')}});const d=await r.json();if(!r.ok)throw new Error(d.message||'Unable to load attempt');const a=d.attempt;
+ try{const r=await fetch(MindQuizAuth.API_BASE+'/attempts/'+encodeURIComponent(id),{headers:{Authorization:'Bearer '+localStorage.getItem('mindQuizToken')}});const d=await r.json();if(!r.ok)throw new Error(d.message||'Unable to load attempt');const a=d.attempt;
  const modal=document.getElementById('attemptModal');if(!modal)return;
  document.getElementById('detailTitle').textContent=a.quizTitle;document.getElementById('detailScore').textContent=a.score+'/'+a.total+' • '+a.percentage+'%';document.getElementById('detailTime').textContent='Time: '+Math.round((a.timeTaken||0)/60)+' min';
  document.getElementById('detailQuestions').innerHTML=(a.breakdown||[]).map((q,i)=>'<div class="detail-q"><b>'+ (i+1)+'. '+esc(q.question)+'</b><span class="'+(q.selected===q.correct?'correct':'wrong')+'">Your answer: '+esc(q.selectedText||'Not answered')+'</span><small>Correct: '+esc(q.correctText||'')+'</small></div>').join('');
@@ -22,9 +22,9 @@ document.getElementById('closeAttempt')?.addEventListener('click',()=>document.g
 filter.addEventListener('change',render);
 async function load(){
  if(window.MindQuizAuth&&!MindQuizAuth.requireRole('student'))return;
- try{const r=await fetch(MindQuizAuth.API_BASE+'/api/my-attempts',{headers:{Authorization:'Bearer '+localStorage.getItem('mindQuizToken')}});const d=await r.json();if(!r.ok)throw new Error(d.message);allResults=d.attempts||[]}catch(e){allResults=[]}
+ try{const r=await fetch(MindQuizAuth.API_BASE+'/my-attempts',{headers:{Authorization:'Bearer '+localStorage.getItem('mindQuizToken')}});const d=await r.json();if(!r.ok)throw new Error(d.message);allResults=d.attempts||[]}catch(e){allResults=[]}
  render();
 }
-async function loadLeaderboard(){const el=document.getElementById('leaderboardList');if(!el)return;try{const r=await fetch(MindQuizAuth.API_BASE+'/api/leaderboard',{headers:{Authorization:'Bearer '+localStorage.getItem('mindQuizToken')}});const d=await r.json();if(!r.ok)throw new Error(d.message||'Unable to load leaderboard');el.innerHTML=(d.leaderboard||[]).length?d.leaderboard.map(x=>'<div class="leaderboard-row '+(x.username===MindQuizAuth.getUser()?.username?'me':'')+'"><strong>#'+x.rank+'</strong><div><b>'+esc(x.name)+'</b><small>@'+esc(x.username)+'</small></div><span>'+x.attempts+' quizzes</span><b>'+x.average+'%</b></div>').join(''):'<p>No ranked results yet.</p>'}catch(e){el.innerHTML='<p>Unable to load leaderboard.</p>'}}
+async function loadLeaderboard(){const el=document.getElementById('leaderboardList');if(!el)return;try{const r=await fetch(MindQuizAuth.API_BASE+'/leaderboard',{headers:{Authorization:'Bearer '+localStorage.getItem('mindQuizToken')}});const d=await r.json();if(!r.ok)throw new Error(d.message||'Unable to load leaderboard');el.innerHTML=(d.leaderboard||[]).length?d.leaderboard.map(x=>'<div class="leaderboard-row '+(x.username===MindQuizAuth.getUser()?.username?'me':'')+'"><strong>#'+x.rank+'</strong><div><b>'+esc(x.name)+'</b><small>@'+esc(x.username)+'</small></div><span>'+x.attempts+' quizzes</span><b>'+x.average+'%</b></div>').join(''):'<p>No ranked results yet.</p>'}catch(e){el.innerHTML='<p>Unable to load leaderboard.</p>'}}
 document.getElementById('refreshLeaderboard')?.addEventListener('click',loadLeaderboard);
 load();loadLeaderboard();
