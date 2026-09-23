@@ -9,7 +9,7 @@ function getUser(){
 }
 function logout(){
   const token=localStorage.getItem("mindQuizToken");
-  if(token) fetch(API_BASE+"/api/logout",{method:"POST",headers:{Authorization:"Bearer "+token}}).catch(()=>{});
+  if(token) fetch(API_BASE+"/logout",{method:"POST",headers:{Authorization:"Bearer "+token}}).catch(()=>{});
   localStorage.removeItem("mindQuizToken");
   localStorage.removeItem("mindQuizUser");
   window.location.href="login.html";
